@@ -1,0 +1,364 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StyleHub Fashion Store</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;margin:0;background:#fff5f7;color:#402b35}
+header{background:#9d174d;color:white;text-align:center;padding:22px}
+nav{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;background:white;padding:12px}
+button{background:#be185d;color:white;border:0;padding:10px 14px;margin:4px;border-radius:5px;cursor:pointer}
+button:hover{background:#9d174d}
+input,select{width:100%;padding:10px;margin:7px 0;border:1px solid #e5c9d5;border-radius:5px}
+main{max-width:950px;margin:20px auto;padding:0 14px}
+section{background:white;padding:20px;margin-bottom:18px;border-radius:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.card{border:1px solid #ead5df;padding:14px;margin:8px 0;border-radius:8px}
+.hidden{display:none}
+footer{text-align:center;padding:20px;color:#765364}
+</style>
+</head>
+<body>
+
+<header>
+<h1>StyleHub</h1>
+<p>Your Online Fashion Shopping Store</p>
+</header>
+
+<nav>
+<button onclick="show('home')">Home</button>
+<button onclick="show('products')">Products</button>
+<button onclick="show('cart')">Shopping Cart</button>
+<button onclick="show('status')">Order Status</button>
+<button onclick="show('history')">Order History</button>
+<button onclick="logout()">Logout</button>
+<button onclick="leaveSite()">Leave Site</button>
+</nav>
+
+<main>
+<section id="login">
+<h2>User Login</h2>
+<input id="username" placeholder="Enter username">
+<input id="password" type="password" placeholder="Enter password">
+<button onclick="login()">Login</button>
+<p id="loginMessage"></p>
+</section>
+
+<div id="app" class="hidden">
+<section id="home">
+<h2>Welcome to StyleHub</h2>
+<p>Explore fashion for men, women, and children.</p>
+<div class="grid">
+<div class="card">Men's Fashion</div>
+<div class="card">Women's Fashion</div>
+<div class="card">Kids' Fashion</div>
+<div class="card">Footwear & Accessories</div>
+</div>
+<button onclick="show('products')">Shop Now</button>
+</section>
+
+<section id="products" class="hidden">
+<h2>Search Fashion Products</h2>
+<input id="search" placeholder="Search products..." oninput="displayProducts()">
+<select id="category" onchange="displayProducts()">
+<option value="All">All Categories</option>
+<option>Men</option>
+<option>Women</option>
+<option>Kids</option>
+<option>Footwear</option>
+<option>Accessories</option>
+</select>
+<div id="productList" class="grid"></div>
+</section>
+
+<section id="details" class="hidden">
+<h2>Product Details</h2>
+<div id="detailContent"></div>
+</section>
+
+<section id="cart" class="hidden">
+<h2>Shopping Cart</h2>
+<div id="cartItems"></div>
+<h3 id="total"></h3>
+<button onclick="checkout()">Checkout Cart</button>
+<p id="checkoutMessage"></p>
+</section>
+
+<section id="status" class="hidden">
+<h2>Check Order Status</h2>
+<input id="orderId" placeholder="Enter order ID">
+<button onclick="checkStatus()">Check Status</button>
+<div id="statusResult"></div>
+</section>
+
+<section id="history" class="hidden">
+<h2>Order History</h2>
+<div id="orderHistory"></div>
+</section>
+
+<section id="exit" class="hidden">
+<h2>Thank You for Visiting StyleHub!</h2>
+<p>You have left the shopping website.</p>
+<button onclick="returnSite()">Return to Website</button>
+</section>
+</div>
+</main>
+
+<footer>StyleHub | Internet Programming Lab Experiment 10</footer>
+
+<script>
+const initialProducts=[
+{id:1,name:"Cotton T-Shirt",category:"Men",price:599,stock:15,size:"S, M, L, XL",description:"Comfortable cotton casual T-shirt."},
+{id:2,name:"Floral Dress",category:"Women",price:1299,stock:10,size:"S, M, L",description:"Elegant floral dress for everyday wear."},
+{id:3,name:"Kids Jacket",category:"Kids",price:899,stock:8,size:"S, M, L",description:"Warm jacket for children."},
+{id:4,name:"Running Shoes",category:"Footwear",price:1999,stock:12,size:"7, 8, 9, 10",description:"Lightweight shoes for running."},
+{id:5,name:"Handbag",category:"Accessories",price:1499,stock:7,size:"Free Size",description:"Stylish handbag for daily use."}
+];
+
+const get=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+const put=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+let currentUser=sessionStorage.getItem("styleUser")||"";
+let products=get("styleProducts10",initialProducts);
+let cart=get("styleCart10",[]);
+let orders=get("styleOrders10",[]);
+
+// 1 and 2: Visit site and login
+function login(){
+ let u=document.getElementById("username").value.trim();
+ let p=document.getElementById("password").value;
+ if(!u||!p){
+  loginMessage.textContent="Please enter username and password.";
+  return;
+ }
+ currentUser=u;
+ sessionStorage.setItem("styleUser",u);
+ document.getElementById("login").classList.add("hidden");
+ document.getElementById("app").classList.remove("hidden");
+ show("home");
+ displayProducts();
+}
+
+// Navigate between pages
+function show(id){
+ if(!currentUser){alert("Please login first.");return;}
+ document.querySelectorAll("#app > section").forEach(s=>s.classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
+ if(id==="products")displayProducts();
+ if(id==="cart")displayCart();
+ if(id==="history")displayHistory();
+}
+
+// 3: Search for items
+function displayProducts(){
+ products=get("styleProducts10",initialProducts);
+ let term=document.getElementById("search").value.toLowerCase();
+ let cat=document.getElementById("category").value;
+ let list=products.filter(p=>
+ p.name.toLowerCase().includes(term)&&
+ (cat==="All"||p.category===cat));
+
+ document.getElementById("productList").innerHTML=list.map(p=>
+ `<div class="card">
+ <h3>${p.name}</h3>
+ <p>Category: ${p.category}</p>
+ <p>Price: ₹${p.price}</p>
+ <p>Available: ${p.stock>0?"In Stock":"Out of Stock"}</p>
+ <button onclick="details(${p.id})">Item Details</button>
+ <button onclick="addCart(${p.id})" ${p.stock===0?"disabled":""}>Add to Cart</button>
+ </div>`).join("")||"No matching products found.";
+}
+
+// 4 and 11: Check availability and display item details
+function details(id){
+ let p=products.find(x=>x.id===id);
+ document.getElementById("detailContent").innerHTML=
+ `<div class="card">
+ <h3>${p.name}</h3>
+ <p>Description: ${p.description}</p>
+ <p>Category: ${p.category}</p>
+ <p>Price: ₹${p.price}</p>
+ <p>Available sizes: ${p.size}</p>
+ <p>Stock available: ${p.stock}</p>
+ <p>${p.stock>0?"Product is available.":"Product is out of stock."}</p>
+ </div>`;
+ show("details");
+}
+
+// 5: Add items to shopping cart
+function addCart(id){
+ products=get("styleProducts10",initialProducts);
+ let p=products.find(x=>x.id===id);
+ let item=cart.find(x=>x.id===id&&x.user===currentUser);
+ let qty=item?item.qty:0;
+ if(!p||qty>=p.stock){
+  alert("Product is unavailable or stock limit reached.");
+  return;
+ }
+ if(item)item.qty++;
+ else cart.push({id:p.id,name:p.name,price:p.price,qty:1,user:currentUser});
+ put("styleCart10",cart);
+ alert("Product added to cart.");
+}
+
+// 6: Edit quantity
+function editQty(id,value){
+ let item=cart.find(x=>x.id===id&&x.user===currentUser);
+ let p=products.find(x=>x.id===id);
+ if(!item)return;
+ let qty=parseInt(value);
+ if(!Number.isInteger(qty)||qty<1){
+  alert("Enter a valid quantity.");
+  displayCart();
+  return;
+ }
+ if(!p||qty>p.stock){
+  alert("Quantity exceeds available stock.");
+  displayCart();
+  return;
+ }
+ item.qty=qty;
+ put("styleCart10",cart);
+ displayCart();
+}
+
+// 7: Remove items from shopping cart
+function removeCart(id){
+ cart=cart.filter(x=>!(x.id===id&&x.user===currentUser));
+ put("styleCart10",cart);
+ displayCart();
+}
+
+function displayCart(){
+ cart=get("styleCart10",[]);
+ let items=cart.filter(x=>x.user===currentUser);
+ document.getElementById("cartItems").innerHTML=items.map(p=>
+ `<div class="card">
+ <b>${p.name}</b> — ₹${p.price}
+ <label>Quantity</label>
+ <input type="number" min="1" value="${p.qty}"
+ onchange="editQty(${p.id},this.value)">
+ <button onclick="removeCart(${p.id})">Remove Item</button>
+ </div>`).join("")||"Your cart is empty.";
+
+ document.getElementById("total").textContent="Total: ₹"+
+ items.reduce((s,p)=>s+p.price*p.qty,0);
+}
+
+// 8: Checkout shopping cart
+function checkout(){
+ let items=cart.filter(x=>x.user===currentUser);
+ if(!items.length){
+  alert("Your shopping cart is empty.");
+  return;
+ }
+ products=get("styleProducts10",initialProducts);
+
+ for(let item of items){
+  let p=products.find(x=>x.id===item.id);
+  if(!p||p.stock<item.qty){
+   alert("Insufficient stock for "+item.name);
+   return;
+  }
+ }
+
+ items.forEach(item=>{
+  products.find(p=>p.id===item.id).stock-=item.qty;
+ });
+
+ let order={
+  id:"SH"+Date.now(),
+  user:currentUser,
+  items:items.map(x=>({...x})),
+  total:items.reduce((s,p)=>s+p.price*p.qty,0),
+  status:"Order Placed",
+  date:new Date().toLocaleString()
+ };
+
+ orders=get("styleOrders10",[]);
+ orders.push(order);
+ put("styleOrders10",orders);
+ put("styleProducts10",products);
+
+ cart=cart.filter(x=>x.user!==currentUser);
+ put("styleCart10",cart);
+
+ document.getElementById("checkoutMessage").textContent=
+ "Order placed successfully! Order ID: "+order.id;
+
+ displayCart();
+ displayProducts();
+}
+
+// 9: Check order status
+function checkStatus(){
+ let id=document.getElementById("orderId").value.trim();
+ let o=get("styleOrders10",[]).find(x=>x.id===id&&x.user===currentUser);
+ document.getElementById("statusResult").innerHTML=o?
+ `<div class="card">Order ID: ${o.id}<p>Status: ${o.status}</p>
+ Total: ₹${o.total}</div>`:"Order not found.";
+}
+
+// 10: Browse order history
+function displayHistory(){
+ let list=get("styleOrders10",[]).filter(x=>x.user===currentUser);
+ document.getElementById("orderHistory").innerHTML=list.map(o=>
+ `<div class="card">
+ <b>Order ID: ${o.id}</b>
+ <p>Date: ${o.date}</p>
+ <p>Total: ₹${o.total}</p>
+ <p>Status: ${o.status}</p>
+ <button onclick="updateStatus('${o.id}','Shipped')">Demo: Mark Shipped</button>
+ <button onclick="updateStatus('${o.id}','Delivered')">Demo: Mark Delivered</button>
+ </div>`).join("")||"No previous orders.";
+}
+
+function updateStatus(id,status){
+ let list=get("styleOrders10",[]);
+ let o=list.find(x=>x.id===id&&x.user===currentUser);
+ if(o)o.status=status;
+ put("styleOrders10",list);
+ displayHistory();
+}
+
+// 12: Logout
+function logout(){
+ currentUser="";
+ sessionStorage.removeItem("styleUser");
+ document.getElementById("app").classList.add("hidden");
+ document.getElementById("exit").classList.add("hidden");
+ document.getElementById("login").classList.remove("hidden");
+ document.getElementById("username").value="";
+ document.getElementById("password").value="";
+}
+
+// 13: Leave site
+function leaveSite(){
+ if(confirm("Do you want to leave StyleHub?")){
+ document.getElementById("app").classList.add("hidden");
+ document.getElementById("login").classList.add("hidden");
+ document.getElementById("exit").classList.remove("hidden");
+ }
+}
+
+function returnSite(){
+ document.getElementById("exit").classList.add("hidden");
+ if(currentUser){
+  document.getElementById("app").classList.remove("hidden");
+  show("home");
+ }else{
+  document.getElementById("login").classList.remove("hidden");
+ }
+}
+
+if(currentUser){
+ document.getElementById("login").classList.add("hidden");
+ document.getElementById("app").classList.remove("hidden");
+ show("home");
+}
+</script>
+</body>
+</html>
