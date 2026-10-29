@@ -1,0 +1,556 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReNewMarket - Second-Hand Marketplace</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f6f4;color:#24352d}
+header{background:#176b4d;color:white;text-align:center;padding:22px}
+header h1{margin:0}
+nav{background:#104b37;padding:12px;display:flex;justify-content:center;flex-wrap:wrap;gap:7px}
+button{border:0;padding:10px 13px;background:#198754;color:white;border-radius:5px;cursor:pointer;margin:3px}
+button:hover{opacity:.85}
+nav button{background:white;color:#14583e}
+.container{max-width:1100px;margin:22px auto;padding:15px}
+section{display:none}
+section.active{display:block}
+h2{color:#176b4d}
+input,select,textarea{width:100%;padding:10px;margin:6px 0 12px;border:1px solid #c6d8ce;border-radius:5px}
+.card{background:white;padding:16px;border-radius:9px;border:1px solid #dce8e0;box-shadow:0 2px 5px #dce5df}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+.product img{width:100%;height:160px;object-fit:cover;border-radius:6px}
+.price{font-size:19px;color:#198754;font-weight:bold}
+.danger{background:#c0392b}
+.secondary{background:#64748b}
+table{width:100%;border-collapse:collapse;background:white;margin:15px 0}
+th,td{border:1px solid #dce8e0;padding:9px;text-align:left;overflow-wrap:anywhere}
+th{background:#dcefe4}
+.small{font-size:13px;color:#66756c}
+#message{display:none;background:#dff5e7;padding:12px;border-radius:5px;margin-bottom:15px}
+footer{text-align:center;padding:20px;background:#104b37;color:white;margin-top:30px}
+@media(max-width:600px){table{font-size:12px}th,td{padding:5px}.container{padding:8px}}
+</style>
+</head>
+
+<body>
+<header>
+<h1>♻ ReNewMarket</h1>
+<p>Buy Smart • Sell Easy • Reuse More</p>
+<p>Give pre-loved products a new life!</p>
+</header>
+
+<nav>
+<button onclick="show('home')">Home</button>
+<button onclick="show('login')">Login / Register</button>
+<button onclick="show('shop')">Browse Items</button>
+<button onclick="show('sell')">Sell Item</button>
+<button onclick="show('favorites')">Favorites</button>
+<button onclick="show('orders')">My Orders</button>
+<button onclick="show('profile')">My Profile</button>
+<button onclick="show('feedback')">Feedback</button>
+<button onclick="show('admin')">Admin</button>
+<button onclick="logout()">Logout</button>
+</nav>
+
+<div class="container">
+<div id="message"></div>
+
+<section id="home" class="active">
+<div class="card">
+<h2>Welcome to ReNewMarket!</h2>
+<p>Buy and sell quality second-hand goods at affordable prices.</p>
+<p>Explore electronics, furniture, clothing and collectibles.</p>
+<button onclick="show('shop')">Explore Products</button>
+<button onclick="show('sell')">Start Selling</button>
+</div>
+<h2>Popular Categories</h2>
+<div class="grid">
+<div class="card"><h3>📱 Electronics</h3><button onclick="category('Electronics')">Explore</button></div>
+<div class="card"><h3>🪑 Furniture</h3><button onclick="category('Furniture')">Explore</button></div>
+<div class="card"><h3>👕 Clothing</h3><button onclick="category('Clothing')">Explore</button></div>
+<div class="card"><h3>⌚ Collectibles</h3><button onclick="category('Collectibles')">Explore</button></div>
+</div>
+<h2>Recently Listed Items</h2>
+<div id="featured" class="grid"></div>
+</section>
+
+<section id="login">
+<div class="grid">
+<div class="card">
+<h2>User Login</h2>
+<form onsubmit="loginUser(event)">
+<input id="loginEmail" type="email" placeholder="Email" required>
+<input id="loginPassword" type="password" placeholder="Password" required>
+<button type="submit">Login</button>
+</form>
+</div>
+<div class="card">
+<h2>Create Account</h2>
+<form onsubmit="registerUser(event)">
+<input id="regName" placeholder="Full Name" required>
+<input id="regEmail" type="email" placeholder="Email" required>
+<input id="regPhone" placeholder="Phone Number" required>
+<textarea id="regAddress" placeholder="Address" required></textarea>
+<input id="regPassword" type="password" placeholder="Password" required minlength="4">
+<button type="submit">Register</button>
+</form>
+</div>
+</div>
+<p class="small">Demo admin: admin@renew.com | Password: admin123</p>
+</section>
+
+<section id="shop">
+<h2>Browse Second-Hand Items</h2>
+<div class="card">
+<input id="search" placeholder="Search products..." oninput="renderShop()">
+<select id="filterCategory" onchange="renderShop()">
+<option value="">All Categories</option>
+<option>Electronics</option>
+<option>Furniture</option>
+<option>Clothing</option>
+<option>Collectibles</option>
+</select>
+<select id="filterCondition" onchange="renderShop()">
+<option value="">All Conditions</option>
+<option>Like New</option>
+<option>Good</option>
+<option>Used</option>
+</select>
+<input id="maxPrice" type="number" min="0" placeholder="Maximum price (₹)" oninput="renderShop()">
+</div>
+<div id="products" class="grid"></div>
+</section>
+
+<section id="sell">
+<h2>List an Item for Sale</h2>
+<div class="card">
+<p>Login is required to list items.</p>
+<form onsubmit="saveListing(event)">
+<input type="hidden" id="editId">
+<input id="itemName" placeholder="Item name" required>
+<select id="itemCategory" required>
+<option>Electronics</option>
+<option>Furniture</option>
+<option>Clothing</option>
+<option>Collectibles</option>
+</select>
+<select id="itemCondition" required>
+<option>Like New</option>
+<option>Good</option>
+<option>Used</option>
+</select>
+<input id="itemPrice" type="number" min="1" placeholder="Price in ₹" required>
+<input id="itemImage" type="url" placeholder="Image URL (optional)">
+<textarea id="itemDescription" placeholder="Description" required></textarea>
+<button type="submit">Save Listing</button>
+<button type="button" class="secondary" onclick="clearListing()">Clear</button>
+</form>
+</div>
+<h2>My Listings</h2>
+<div id="myListings" class="grid"></div>
+</section>
+
+<section id="favorites">
+<h2>My Favorite Items</h2>
+<div id="favoriteItems" class="grid"></div>
+</section>
+
+<section id="orders">
+<h2>My Orders & Transactions</h2>
+<div id="myOrders"></div>
+</section>
+
+<section id="profile">
+<h2>Manage My Profile</h2>
+<div class="card">
+<form onsubmit="updateProfile(event)">
+<input id="profileName" placeholder="Name" required>
+<input id="profileEmail" type="email" placeholder="Email" required>
+<input id="profilePhone" placeholder="Phone" required>
+<textarea id="profileAddress" placeholder="Address" required></textarea>
+<button type="submit">Update Profile</button>
+<button type="button" class="danger" onclick="deleteAccount()">Delete Account</button>
+</form>
+</div>
+</section>
+
+<section id="feedback">
+<h2>Leave Feedback</h2>
+<div class="card">
+<form onsubmit="submitFeedback(event)">
+<input id="feedbackOrder" placeholder="Order ID" required>
+<select id="rating" required>
+<option value="">Select Rating</option>
+<option>5 - Excellent</option>
+<option>4 - Very Good</option>
+<option>3 - Good</option>
+<option>2 - Fair</option>
+<option>1 - Poor</option>
+</select>
+<textarea id="feedbackText" placeholder="Write your feedback" required></textarea>
+<button type="submit">Submit Feedback</button>
+</form>
+</div>
+<h2>Feedback History</h2>
+<div id="feedbackList"></div>
+</section>
+
+<section id="admin">
+<h2>Administrator Login</h2>
+<div class="card">
+<form onsubmit="adminLogin(event)">
+<input id="adminEmail" type="email" placeholder="Admin Email" required>
+<input id="adminPassword" type="password" placeholder="Admin Password" required>
+<button type="submit">Login as Admin</button>
+</form>
+</div>
+
+<div id="adminPanel" style="display:none">
+<h2>User Management</h2>
+<div id="adminUsers"></div>
+
+<h2>Category Management</h2>
+<div class="card">
+<form onsubmit="addCategory(event)">
+<input id="newCategory" placeholder="New category name" required>
+<button type="submit">Add Category</button>
+</form>
+<div id="adminCategories"></div>
+</div>
+
+<h2>Commodity / Listing Management</h2>
+<div id="adminProducts"></div>
+
+<h2>Order Management</h2>
+<div id="adminOrders"></div>
+
+<h2>Feedback Management</h2>
+<div id="adminFeedback"></div>
+</div>
+</section>
+</div>
+
+<footer>
+<p>ReNewMarket | Second-Hand Goods Marketplace</p>
+<p>Internet Programming Lab Experiment</p>
+</footer>
+
+<script>
+const initialProducts=[
+{id:1,name:"Second-Hand Laptop",category:"Electronics",condition:"Good",price:15000,stock:1,image:"https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500",description:"Laptop in good working condition.",seller:"seller@example.com"},
+{id:2,name:"Wooden Study Table",category:"Furniture",condition:"Used",price:2500,stock:1,image:"https://images.unsplash.com/photo-1499933374294-4584851497cc?w=500",description:"Used study table in good condition.",seller:"seller@example.com"},
+{id:3,name:"Casual Jacket",category:"Clothing",condition:"Like New",price:700,stock:1,image:"https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500",description:"Gently used casual jacket.",seller:"seller@example.com"},
+{id:4,name:"Vintage Watch",category:"Collectibles",condition:"Good",price:1800,stock:1,image:"https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=500",description:"Vintage-style collectible watch.",seller:"seller@example.com"}
+];
+
+function load(key, fallback){
+ try{return JSON.parse(localStorage.getItem(key))??fallback}
+ catch{return fallback}
+}
+function save(key,value){localStorage.setItem(key,JSON.stringify(value))}
+let products=load("rnProducts",initialProducts);
+let users=load("rnUsers",[]);
+let orders=load("rnOrders",[]);
+let favorites=load("rnFavorites",{});
+let feedback=load("rnFeedback",[]);
+let categories=load("rnCategories",["Electronics","Furniture","Clothing","Collectibles"]);
+let currentUser=load("rnCurrentUser",null);
+let isAdmin=false;
+
+function esc(v){
+ return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function msg(t){
+ let e=document.getElementById("message");
+ e.textContent=t;e.style.display="block";
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+function persist(){
+ save("rnProducts",products);save("rnUsers",users);
+ save("rnOrders",orders);save("rnFavorites",favorites);
+ save("rnFeedback",feedback);save("rnCategories",categories);
+}
+function show(id){
+ document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+ document.getElementById("message").style.display="none";
+ if(id==="home")renderHome();
+ if(id==="shop")renderShop();
+ if(id==="sell")renderListings();
+ if(id==="favorites")renderFavorites();
+ if(id==="orders")renderOrders();
+ if(id==="profile")renderProfile();
+ if(id==="feedback")renderFeedback();
+ if(id==="admin")renderAdmin();
+}
+function me(){return currentUser?users.find(u=>u.id===currentUser.id):null}
+function requireLogin(){
+ if(!me()){msg("Please register or log in first.");show("login");return false}
+ return true;
+}
+function category(c){
+ show("shop");document.getElementById("filterCategory").value=c;renderShop();
+}
+function card(p){
+ return `<div class="card product">
+ <img src="${esc(p.image||"")}" alt="${esc(p.name)}" onerror="this.style.display='none'">
+ <h3>${esc(p.name)}</h3><p>${esc(p.description)}</p>
+ <p>Category: ${esc(p.category)}</p><p>Condition: ${esc(p.condition)}</p>
+ <p class="price">₹${p.price}</p><p>Seller: ${esc(p.seller)}</p>
+ <button onclick="buy(${p.id})">Buy Item</button>
+ <button class="secondary" onclick="negotiate(${p.id})">Negotiate</button>
+ <button onclick="toggleFavorite(${p.id})">♡ Favorite</button>
+ <button class="secondary" onclick="contactSeller(${p.id})">Contact Seller</button>
+ </div>`;
+}
+function renderHome(){
+ document.getElementById("featured").innerHTML=products.slice(0,4).map(card).join("")||"No listings yet.";
+}
+function renderShop(){
+ let q=document.getElementById("search").value.toLowerCase();
+ let cat=document.getElementById("filterCategory").value;
+ let con=document.getElementById("filterCondition").value;
+ let max=document.getElementById("maxPrice").value;
+ let list=products.filter(p=>
+ (p.name+" "+p.description+" "+p.category).toLowerCase().includes(q)&&
+ (!cat||p.category===cat)&&(!con||p.condition===con)&&
+ (!max||p.price<=Number(max)));
+ document.getElementById("products").innerHTML=list.map(card).join("")||"<p>No matching items found.</p>";
+}
+function registerUser(e){
+ e.preventDefault();
+ let email=document.getElementById("regEmail").value.trim().toLowerCase();
+ if(users.some(u=>u.email===email))return msg("Email is already registered.");
+ users.push({id:Date.now(),name:document.getElementById("regName").value.trim(),
+ email,phone:document.getElementById("regPhone").value.trim(),
+ address:document.getElementById("regAddress").value.trim(),
+ password:document.getElementById("regPassword").value});
+ persist();e.target.reset();msg("Registration successful. You can now log in.");
+}
+function loginUser(e){
+ e.preventDefault();
+ let email=document.getElementById("loginEmail").value.trim().toLowerCase();
+ let password=document.getElementById("loginPassword").value;
+ let u=users.find(x=>x.email===email&&x.password===password);
+ if(!u)return msg("Invalid login details. Register if you are a new user.");
+ currentUser={id:u.id};save("rnCurrentUser",currentUser);
+ msg("Welcome, "+u.name+"!");show("shop");
+}
+function logout(){
+ currentUser=null;isAdmin=false;save("rnCurrentUser",null);
+ document.getElementById("adminPanel").style.display="none";
+ show("home");msg("Logged out successfully.");
+}
+function saveListing(e){
+ e.preventDefault();if(!requireLogin())return;
+ let id=Number(document.getElementById("editId").value);
+ let name=document.getElementById("itemName").value.trim();
+ let p={id:id||Date.now(),name,
+ category:document.getElementById("itemCategory").value,
+ condition:document.getElementById("itemCondition").value,
+ price:Number(document.getElementById("itemPrice").value),
+ image:document.getElementById("itemImage").value,
+ description:document.getElementById("itemDescription").value.trim(),
+ seller:me().email,stock:1};
+ if(id){
+ let old=products.find(x=>x.id===id);
+ if(!old||old.seller!==me().email)return msg("You can only edit your own listing.");
+ products=products.map(x=>x.id===id?p:x);
+ }else products.push(p);
+ persist();clearListing();renderListings();renderHome();msg("Listing saved successfully.");
+}
+function clearListing(){
+ document.querySelector("#sell form").reset();document.getElementById("editId").value="";
+}
+function renderListings(){
+ let u=me();
+ document.getElementById("myListings").innerHTML=u?products.filter(p=>p.seller===u.email).map(p=>
+ `<div class="card"><h3>${esc(p.name)}</h3><p>₹${p.price}</p>
+ <button onclick="editListing(${p.id})">Edit</button>
+ <button class="danger" onclick="deleteListing(${p.id})">Delete</button></div>`
+ ).join("")||"You have no listings.":"Please log in to view your listings.";
+}
+function editListing(id){
+ if(!requireLogin())return;
+ let p=products.find(x=>x.id===id);
+ if(!p||p.seller!==me().email)return msg("You can only edit your own listing.");
+ document.getElementById("editId").value=p.id;
+ document.getElementById("itemName").value=p.name;
+ document.getElementById("itemCategory").value=p.category;
+ document.getElementById("itemCondition").value=p.condition;
+ document.getElementById("itemPrice").value=p.price;
+ document.getElementById("itemImage").value=p.image;
+ document.getElementById("itemDescription").value=p.description;
+ show("sell");
+}
+function deleteListing(id){
+ if(!requireLogin())return;
+ let p=products.find(x=>x.id===id);
+ if(!p||p.seller!==me().email)return msg("You can only delete your own listing.");
+ if(!confirm("Delete this listing?"))return;
+ products=products.filter(x=>x.id!==id);persist();renderListings();renderHome();msg("Listing deleted.");
+}
+function buy(id){
+ if(!requireLogin())return;
+ let p=products.find(x=>x.id===id);
+ if(!p)return msg("Item not found.");
+ if(p.seller===me().email)return msg("You cannot buy your own listing.");
+ if(orders.some(o=>o.productId===id&&o.status!=="Cancelled"))return msg("This item is already reserved or sold.");
+ if(!confirm(`Place demo order for ${p.name} at ₹${p.price}?`))return;
+ let o={id:"RN"+Date.now(),productId:id,name:p.name,price:p.price,
+ buyer:me().email,seller:p.seller,status:"Ordered",date:new Date().toLocaleString()};
+ orders.push(o);persist();msg("Order placed! Your order ID is "+o.id);show("orders");
+}
+function negotiate(id){
+ if(!requireLogin())return;
+ let p=products.find(x=>x.id===id);if(!p)return;
+ if(p.seller===me().email)return msg("This is your own listing.");
+ let offer=Number(prompt("Listed price: ₹"+p.price+"\nEnter your offer price (₹):"));
+ if(!Number.isFinite(offer)||offer<=0)return msg("Enter a valid offer price.");
+ let subject=encodeURIComponent("Price offer for "+p.name);
+ let body=encodeURIComponent(`Hello,\nI am interested in ${p.name}.\nListed price: ₹${p.price}\nMy offer: ₹${offer}\nPlease let me know.`);
+ location.href=`mailto:${encodeURIComponent(p.seller)}?subject=${subject}&body=${body}`;
+}
+function contactSeller(id){
+ if(!requireLogin())return;
+ let p=products.find(x=>x.id===id);if(!p)return;
+ location.href=`mailto:${encodeURIComponent(p.seller)}?subject=${encodeURIComponent("Inquiry about "+p.name)}`;
+}
+function toggleFavorite(id){
+ if(!requireLogin())return;
+ let key=me().email;
+ favorites[key]=favorites[key]||[];
+ favorites[key]=favorites[key].includes(id)?favorites[key].filter(x=>x!==id):[...favorites[key],id];
+ persist();renderFavorites();msg("Favorites updated.");
+}
+function renderFavorites(){
+ let u=me();
+ document.getElementById("favoriteItems").innerHTML=u?(favorites[u.email]||[]).map(id=>products.find(p=>p.id===id)).filter(Boolean).map(card).join("")||"No favorite items yet.":"Please log in to view favorites.";
+}
+function renderOrders(){
+ let u=me();
+ document.getElementById("myOrders").innerHTML=u?orders.filter(o=>o.buyer===u.email||o.seller===u.email).map(o=>
+ `<div class="card"><h3>${esc(o.name)}</h3><p>Order ID: ${esc(o.id)}</p>
+ <p>Price: ₹${o.price}</p><p>Status: <b>${esc(o.status)}</b></p>
+ <p>Buyer: ${esc(o.buyer)} | Seller: ${esc(o.seller)}</p>
+ <p>Order Date: ${esc(o.date)}</p></div>`
+ ).join("")||"No transactions found.":"Please log in to view orders.";
+}
+function renderProfile(){
+ let u=me();if(!u)return msg("Please log in to view your profile.");
+ document.getElementById("profileName").value=u.name;
+ document.getElementById("profileEmail").value=u.email;
+ document.getElementById("profilePhone").value=u.phone;
+ document.getElementById("profileAddress").value=u.address;
+}
+function updateProfile(e){
+ e.preventDefault();if(!requireLogin())return;
+ let u=me(),email=document.getElementById("profileEmail").value.trim().toLowerCase();
+ if(users.some(x=>x.id!==u.id&&x.email===email))return msg("Email already registered.");
+ let old=u.email;
+ u.name=document.getElementById("profileName").value.trim();
+ u.email=email;u.phone=document.getElementById("profilePhone").value.trim();
+ u.address=document.getElementById("profileAddress").value.trim();
+ orders.forEach(o=>{if(o.buyer===old)o.buyer=email;if(o.seller===old)o.seller=email});
+ if(favorites[old]){favorites[email]=favorites[old];delete favorites[old]}
+ persist();msg("Profile updated.");
+}
+function deleteAccount(){
+ if(!requireLogin())return;
+ if(!confirm("Delete your account?"))return;
+ let email=me().email;
+ users=users.filter(u=>u.email!==email);
+ products=products.filter(p=>p.seller!==email);
+ favorites[email]=[];
+ currentUser=null;save("rnCurrentUser",null);persist();show("home");msg("Account deleted.");
+}
+function submitFeedback(e){
+ e.preventDefault();if(!requireLogin())return;
+ let id=document.getElementById("feedbackOrder").value.trim();
+ let o=orders.find(x=>x.id===id&&x.buyer===me().email);
+ if(!o)return msg("Enter an order ID belonging to your account.");
+ feedback.push({id:Date.now(),orderId:id,email:me().email,
+ rating:document.getElementById("rating").value,
+ text:document.getElementById("feedbackText").value});
+ persist();e.target.reset();renderFeedback();msg("Feedback submitted.");
+}
+function renderFeedback(){
+ let u=me();
+ document.getElementById("feedbackList").innerHTML=u?feedback.filter(f=>f.email===u.email).map(f=>
+ `<div class="card"><p>Order: ${esc(f.orderId)}</p><p>${esc(f.rating)}</p><p>${esc(f.text)}</p></div>`
+ ).join("")||"No feedback submitted yet.":"Please log in to view feedback.";
+}
+function adminLogin(e){
+ e.preventDefault();
+ if(document.getElementById("adminEmail").value==="admin@renew.com"&&document.getElementById("adminPassword").value==="admin123"){
+ isAdmin=true;renderAdmin();msg("Admin login successful.");
+ }else msg("Invalid admin credentials.");
+}
+function renderAdmin(){
+ if(!isAdmin)return;
+ document.getElementById("adminPanel").style.display="block";
+ document.getElementById("adminUsers").innerHTML="<table><tr><th>Name</th><th>Email</th><th>Phone</th><th>Actions</th></tr>"+
+ users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.phone)}</td><td>
+ <button onclick="adminEditUser(${u.id})">Edit</button><button class="danger" onclick="adminDeleteUser(${u.id})">Delete</button></td></tr>`).join("")+"</table>";
+ document.getElementById("adminCategories").innerHTML=categories.map(c=>
+ `<p>${esc(c)} <button class="danger" onclick="deleteCategory('${esc(c)}')">Delete</button></p>`).join("");
+ document.getElementById("adminProducts").innerHTML="<table><tr><th>Item</th><th>Seller</th><th>Price</th><th>Actions</th></tr>"+
+ products.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.seller)}</td><td>₹${p.price}</td><td>
+ <button class="danger" onclick="adminDeleteProduct(${p.id})">Delete</button></td></tr>`).join("")+"</table>";
+ document.getElementById("adminOrders").innerHTML="<table><tr><th>Order ID</th><th>Item</th><th>Buyer</th><th>Status</th><th>Actions</th></tr>"+
+ orders.map(o=>`<tr><td>${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.buyer)}</td><td>${esc(o.status)}</td><td>
+ <select onchange="changeStatus('${o.id}',this.value)">
+ ${["Ordered","Shipped","Received","Cancelled"].map(s=>`<option ${o.status===s?"selected":""}>${s}</option>`).join("")}</select>
+ <button class="danger" onclick="adminDeleteOrder('${o.id}')">Delete</button></td></tr>`).join("")+"</table>";
+ document.getElementById("adminFeedback").innerHTML=feedback.map(f=>
+ `<div class="card"><p>Order: ${esc(f.orderId)}</p><p>Rating: ${esc(f.rating)}</p><p>${esc(f.text)}</p>
+ <button class="danger" onclick="deleteFeedback(${f.id})">Delete Feedback</button></div>`).join("")||"No feedback.";
+}
+function adminEditUser(id){
+ if(!isAdmin)return;
+ let u=users.find(x=>x.id===id);if(!u)return;
+ let name=prompt("Customer name:",u.name);if(name===null)return;
+ let phone=prompt("Phone:",u.phone);if(phone===null)return;
+ u.name=name;u.phone=phone;persist();renderAdmin();msg("User updated.");
+}
+function adminDeleteUser(id){
+ if(!isAdmin||!confirm("Delete this user?"))return;
+ users=users.filter(u=>u.id!==id);persist();renderAdmin();msg("User deleted.");
+}
+function addCategory(e){
+ e.preventDefault();if(!isAdmin)return;
+ let c=document.getElementById("newCategory").value.trim();
+ if(categories.some(x=>x.toLowerCase()===c.toLowerCase()))return msg("Category already exists.");
+ categories.push(c);persist();e.target.reset();renderAdmin();msg("Category added.");
+}
+function deleteCategory(c){
+ if(!isAdmin||!confirm("Delete category "+c+"?"))return;
+ categories=categories.filter(x=>x!==c);persist();renderAdmin();msg("Category deleted.");
+}
+function adminDeleteProduct(id){
+ if(!isAdmin||!confirm("Delete this listing?"))return;
+ products=products.filter(p=>p.id!==id);persist();renderAdmin();renderHome();msg("Listing deleted.");
+}
+function changeStatus(id,status){
+ if(!isAdmin)return;
+ let o=orders.find(x=>x.id===id);if(!o)return;
+ o.status=status;persist();renderAdmin();msg("Order status updated.");
+}
+function adminDeleteOrder(id){
+ if(!isAdmin||!confirm("Delete this order?"))return;
+ orders=orders.filter(o=>o.id!==id);persist();renderAdmin();msg("Order deleted.");
+}
+function deleteFeedback(id){
+ if(!isAdmin)return;
+ feedback=feedback.filter(f=>f.id!==id);persist();renderAdmin();msg("Feedback deleted.");
+}
+
+renderHome();
+renderShop();
+</script>
+</body>
+</html>

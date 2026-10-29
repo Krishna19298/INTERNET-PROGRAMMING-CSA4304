@@ -1,0 +1,471 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EasyToll - Online Toll Payment</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#243247}
+header{background:#123d70;color:white;text-align:center;padding:22px}
+header h1{margin:0}
+nav{background:#0c2d52;display:flex;justify-content:center;flex-wrap:wrap;gap:6px;padding:12px}
+button{padding:10px 14px;background:#1479d0;color:white;border:0;border-radius:5px;cursor:pointer;margin:3px}
+button:hover{opacity:.85}
+nav button{background:white;color:#123d70}
+.container{max-width:1100px;margin:22px auto;padding:15px}
+section{display:none}
+section.active{display:block}
+h2{color:#145b99}
+.card{background:white;padding:17px;border-radius:9px;border:1px solid #dbe5ef;margin-bottom:15px;box-shadow:0 2px 5px #dce3ec}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:15px}
+input,select,textarea{width:100%;padding:11px;margin:6px 0 12px;border:1px solid #cbd5e1;border-radius:5px}
+label{font-weight:bold;font-size:14px}
+table{width:100%;border-collapse:collapse;background:white;margin:12px 0}
+th,td{border:1px solid #dbe5ef;padding:9px;text-align:left;overflow-wrap:anywhere}
+th{background:#dcecff}
+.danger{background:#c0392b}
+.green{color:#16803d;font-weight:bold}
+.small{font-size:13px;color:#64748b}
+#message{display:none;background:#dbeafe;color:#123d70;padding:12px;border-radius:5px;margin-bottom:12px}
+#qrBox{background:white;padding:15px;display:inline-block}
+footer{text-align:center;padding:18px;background:#0c2d52;color:white;margin-top:30px}
+@media(max-width:600px){table{font-size:12px}th,td{padding:5px}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🚘 EasyToll</h1>
+<p>Pay in Advance • Travel Without Toll Queues</p>
+</header>
+
+<nav>
+<button onclick="show('home')">Home</button>
+<button onclick="show('register')">Register</button>
+<button onclick="show('login')">User Login</button>
+<button onclick="show('wallet')">eWallet</button>
+<button onclick="show('tickets')">Toll Tickets</button>
+<button onclick="show('passes')">Toll Pass</button>
+<button onclick="show('history')">History</button>
+<button onclick="show('myqr')">My QR Code</button>
+<button onclick="show('admin')">Admin</button>
+<button onclick="show('gate')">Toll Gate</button>
+<button onclick="logout()">Logout</button>
+</nav>
+
+<div class="container">
+<div id="message"></div>
+
+<section id="home" class="active">
+<div class="card">
+<h2>Welcome to EasyToll</h2>
+<p>Manage your toll payments online. Add wallet money, purchase toll tickets, apply for passes, and generate QR codes before travelling.</p>
+<button onclick="show('register')">Create Account</button>
+<button onclick="show('tickets')">Buy Toll Ticket</button>
+</div>
+<div class="grid">
+<div class="card"><h3>💳 eWallet</h3><p>Add demo wallet money and pay toll charges.</p></div>
+<div class="card"><h3>🎫 Toll e-Ticket</h3><p>Purchase advance toll tickets for your journey.</p></div>
+<div class="card"><h3>📱 QR Code</h3><p>Generate a QR code for an approved pass or ticket.</p></div>
+</div>
+</section>
+
+<section id="register">
+<div class="card">
+<h2>User Registration</h2>
+<form onsubmit="registerUser(event)">
+<label>Full Name</label><input id="regName" required>
+<label>Email</label><input id="regEmail" type="email" required>
+<label>Phone</label><input id="regPhone" required>
+<label>Password</label><input id="regPassword" type="password" required minlength="4">
+<label>Vehicle Number</label><input id="regVehicle" placeholder="e.g. TN01AB1234" required>
+<label>Vehicle Type</label>
+<select id="regVehicleType"><option>Car</option><option>Bike</option><option>Bus</option><option>Truck</option><option>Van</option></select>
+<button type="submit">Register</button>
+</form>
+</div>
+</section>
+
+<section id="login">
+<div class="card">
+<h2>User Login</h2>
+<form onsubmit="loginUser(event)">
+<input id="loginEmail" type="email" placeholder="Email" required>
+<input id="loginPassword" type="password" placeholder="Password" required>
+<button type="submit">Login</button>
+</form>
+<p class="small">Admin: admin@easytoll.com / admin123</p>
+<p class="small">Toll gate: gate@easytoll.com / gate123</p>
+</div>
+</section>
+
+<section id="wallet">
+<h2>My eWallet</h2>
+<div class="card">
+<h3>Wallet Balance: ₹<span id="balance">0</span></h3>
+<form onsubmit="addMoney(event)">
+<label>Amount to Add (₹)</label>
+<input id="addAmount" type="number" min="1" max="100000" required>
+<button type="submit">Add Money</button>
+</form>
+<p class="small">This is a simulated wallet. No real money is transferred.</p>
+</div>
+</section>
+
+<section id="tickets">
+<h2>Buy Advance Toll e-Ticket</h2>
+<div class="card">
+<form onsubmit="buyTicket(event)">
+<label>Starting Toll Gate</label>
+<select id="fromGate" required>
+<option value="">Select starting gate</option>
+<option>Chennai Toll Gate</option>
+<option>Sriperumbudur Toll Gate</option>
+<option>Vellore Toll Gate</option>
+<option>Bengaluru Toll Gate</option>
+</select>
+<label>Destination Toll Gate</label>
+<select id="toGate" required>
+<option value="">Select destination gate</option>
+<option>Chennai Toll Gate</option>
+<option>Sriperumbudur Toll Gate</option>
+<option>Vellore Toll Gate</option>
+<option>Bengaluru Toll Gate</option>
+</select>
+<label>Travel Date</label><input id="travelDate" type="date" required>
+<label>Vehicle Number</label><input id="ticketVehicle" required>
+<label>Ticket Amount (₹)</label><input id="ticketAmount" type="number" min="1" max="10000" required>
+<button type="submit">Pay & Buy Ticket</button>
+</form>
+</div>
+</section>
+
+<section id="passes">
+<h2>Apply or Renew Toll Pass</h2>
+<div class="card">
+<form onsubmit="applyPass(event)">
+<label>Vehicle Number</label><input id="passVehicle" required>
+<label>Pass Type</label>
+<select id="passType"><option>Daily</option><option>Monthly</option><option>Annual</option></select>
+<label>Toll Location</label>
+<select id="passLocation"><option>Chennai Toll Gate</option><option>Sriperumbudur Toll Gate</option><option>Vellore Toll Gate</option><option>Bengaluru Toll Gate</option></select>
+<label>Pass Fee (₹)</label><input id="passFee" type="number" min="1" max="100000" required>
+<button type="submit">Apply / Renew Pass</button>
+</form>
+<p class="small">Passes must be approved by the administrator before use.</p>
+</div>
+<h2>My Pass Applications</h2>
+<div id="myPasses"></div>
+</section>
+
+<section id="myqr">
+<h2>My Toll QR Code</h2>
+<div class="card">
+<label>Select Ticket or Approved Pass</label>
+<select id="qrSelection"></select>
+<button onclick="generateMyQR()">Generate QR Code</button>
+<div id="qrBox" style="display:none;margin-top:15px">
+<div id="qrCode"></div>
+<p id="qrDescription"></p>
+</div>
+</div>
+</section>
+
+<section id="history">
+<h2>Transaction History</h2>
+<div id="historyContent"></div>
+</section>
+
+<section id="admin">
+<h2>Administrator Dashboard</h2>
+<div class="card">
+<form onsubmit="adminLogin(event)">
+<input id="adminEmail" type="email" placeholder="Admin Email" required>
+<input id="adminPassword" type="password" placeholder="Admin Password" required>
+<button type="submit">Admin Login</button>
+</form>
+</div>
+<div id="adminPanel" style="display:none">
+<h2>User Management</h2><div id="adminUsers"></div>
+<h2>Manage Toll Pass Applications</h2><div id="adminPasses"></div>
+<h2>Toll Gate Management</h2>
+<div class="card">
+<form onsubmit="addGate(event)">
+<input id="newGate" placeholder="New Toll Gate Name" required>
+<button type="submit">Add Toll Gate</button>
+</form>
+<div id="gateList"></div>
+</div>
+<h2>Toll Tickets</h2><div id="adminTickets"></div>
+</div>
+</section>
+
+<section id="gate">
+<h2>Toll Gate Operator Login</h2>
+<div class="card">
+<form onsubmit="gateLogin(event)">
+<input id="gateEmail" type="email" placeholder="Gate Email" required>
+<input id="gatePassword" type="password" placeholder="Gate Password" required>
+<button type="submit">Login to Toll Gate</button>
+</form>
+</div>
+<div id="gatePanel" style="display:none">
+<h2>Verify QR / Ticket / Pass</h2>
+<div class="card">
+<label>Enter or Scan QR Content / Ticket ID / Pass ID</label>
+<input id="verifyId" placeholder="e.g. ET123456 or EP123456">
+<button onclick="verifyToll()">Verify</button>
+<div id="verifyResult"></div>
+</div>
+<div class="card">
+<h2>Update Toll Location</h2>
+<form onsubmit="updateLocation(event)">
+<input id="locationId" placeholder="Ticket or Pass ID" required>
+<select id="newLocation"><option>Chennai Toll Gate</option><option>Sriperumbudur Toll Gate</option><option>Vellore Toll Gate</option><option>Bengaluru Toll Gate</option></select>
+<button type="submit">Update Location</button>
+</form>
+</div>
+</div>
+</section>
+
+</div>
+
+<footer><p>EasyToll | Online Toll Payment System</p><p>Internet Programming Lab Experiment</p></footer>
+
+<script>
+const initialGates=["Chennai Toll Gate","Sriperumbudur Toll Gate","Vellore Toll Gate","Bengaluru Toll Gate"];
+function load(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+let users=load("etUsers",[]);
+let tickets=load("etTickets",[]);
+let passes=load("etPasses",[]);
+let transactions=load("etTransactions",[]);
+let gates=load("etGates",initialGates);
+let currentUser=load("etCurrentUser",null);
+let role="";
+let selectedQR=null;
+
+function notify(s){
+ const e=document.getElementById("message");
+ e.textContent=s;e.style.display="block";
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+function persist(){
+ save("etUsers",users);save("etTickets",tickets);
+ save("etPasses",passes);save("etTransactions",transactions);
+ save("etGates",gates);
+}
+function me(){return users.find(u=>u.id===currentUser?.id)}
+function requireUser(){
+ if(role!=="user"||!me()){notify("Please log in as a user first.");show("login");return false}
+ return true;
+}
+function show(id){
+ document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+ document.getElementById("message").style.display="none";
+ if(id==="wallet")renderWallet();
+ if(id==="passes")renderMyPasses();
+ if(id==="myqr")renderQRChoices();
+ if(id==="history")renderHistory();
+ if(id==="admin")renderAdmin();
+ if(id==="tickets")fillTicketGates();
+ if(id==="passes")fillPassGates();
+}
+function registerUser(e){
+ e.preventDefault();
+ let email=regEmail.value.trim().toLowerCase();
+ if(users.some(u=>u.email===email))return notify("Email already registered.");
+ users.push({id:Date.now(),name:regName.value.trim(),email,
+ phone:regPhone.value,password:regPassword.value,
+ vehicle:regVehicle.value.trim().toUpperCase(),vehicleType:regVehicleType.value,balance:0});
+ persist();e.target.reset();notify("Registration successful. Please log in.");
+}
+function loginUser(e){
+ e.preventDefault();
+ let email=loginEmail.value.trim().toLowerCase();
+ let u=users.find(x=>x.email===email&&x.password===loginPassword.value);
+ if(!u)return notify("Invalid user login.");
+ currentUser={id:u.id};role="user";save("etCurrentUser",currentUser);
+ notify("Welcome "+u.name);show("wallet");
+}
+function logout(){
+ currentUser=null;role="";save("etCurrentUser",null);
+ adminPanel.style.display="none";gatePanel.style.display="none";
+ show("home");notify("Logged out successfully.");
+}
+function addMoney(e){
+ e.preventDefault();if(!requireUser())return;
+ let amount=Number(addAmount.value),u=me();
+ if(!Number.isFinite(amount)||amount<=0)return notify("Enter a valid amount.");
+ u.balance+=amount;
+ transactions.push({id:"TX"+Date.now(),userId:u.id,type:"Wallet Deposit",amount,date:new Date().toLocaleString()});
+ persist();e.target.reset();renderWallet();notify("Demo money added successfully.");
+}
+function renderWallet(){
+ let u=me();balance.textContent=u?u.balance.toFixed(2):"0.00";
+}
+function fillTicketGates(){
+ fromGate.innerHTML='<option value="">Select starting gate</option>'+gates.map(g=>`<option>${esc(g)}</option>`).join("");
+ toGate.innerHTML='<option value="">Select destination gate</option>'+gates.map(g=>`<option>${esc(g)}</option>`).join("");
+}
+function fillPassGates(){
+ passLocation.innerHTML=gates.map(g=>`<option>${esc(g)}</option>`).join("");
+}
+function buyTicket(e){
+ e.preventDefault();if(!requireUser())return;
+ let u=me(),from=fromGate.value,to=toGate.value;
+ let amount=Number(ticketAmount.value),date=travelDate.value;
+ if(from===to)return notify("Starting and destination toll gates must differ.");
+ if(date<new Date().toLocaleDateString("en-CA"))return notify("Choose today or a future travel date.");
+ if(!Number.isFinite(amount)||amount<=0)return notify("Enter a valid ticket amount.");
+ if(u.balance<amount)return notify("Insufficient wallet balance. Add money first.");
+ u.balance-=amount;
+ let t={id:"ET"+Date.now(),userId:u.id,vehicle:ticketVehicle.value.trim().toUpperCase(),
+ from,to,date,amount,status:"Valid",location:from,used:false};
+ tickets.push(t);
+ transactions.push({id:"TX"+Date.now(),userId:u.id,type:"Toll Ticket Purchase",amount:-amount,date:new Date().toLocaleString()});
+ persist();e.target.reset();renderWallet();notify("Ticket purchased! ID: "+t.id);show("myqr");
+}
+function applyPass(e){
+ e.preventDefault();if(!requireUser())return;
+ let u=me(),fee=Number(passFee.value);
+ if(!Number.isFinite(fee)||fee<=0)return notify("Enter a valid pass fee.");
+ if(u.balance<fee)return notify("Insufficient wallet balance. Add money first.");
+ u.balance-=fee;
+ let p={id:"EP"+Date.now(),userId:u.id,vehicle:passVehicle.value.trim().toUpperCase(),
+ type:passType.value,location:passLocation.value,fee,status:"Pending",used:false,
+ expiry:passType.value==="Daily"?1:passType.value==="Monthly"?30:365};
+ passes.push(p);
+ transactions.push({id:"TX"+Date.now(),userId:u.id,type:"Toll Pass Application",amount:-fee,date:new Date().toLocaleString()});
+ persist();e.target.reset();renderWallet();renderMyPasses();
+ notify("Pass application submitted for admin approval.");show("passes");
+}
+function renderMyPasses(){
+ let u=me();
+ myPasses.innerHTML=u?passes.filter(p=>p.userId===u.id).map(p=>
+ `<div class="card"><h3>${esc(p.id)}</h3><p>Vehicle: ${esc(p.vehicle)}</p>
+ <p>Type: ${esc(p.type)} | Location: ${esc(p.location)}</p>
+ <p>Fee: ₹${p.fee} | Status: <b>${esc(p.status)}</b></p></div>`
+ ).join("")||"No toll passes yet.":"Please log in to view passes.";
+}
+function renderQRChoices(){
+ let u=me();
+ let items=u?[...tickets.filter(t=>t.userId===u.id).map(t=>({id:t.id,label:"Ticket "+t.id,status:t.status})),
+ ...passes.filter(p=>p.userId===u.id&&p.status==="Approved").map(p=>({id:p.id,label:"Pass "+p.id,status:p.status}))]:[];
+ qrSelection.innerHTML=items.map(x=>`<option value="${esc(x.id)}">${esc(x.label)}</option>`).join("");
+ if(!items.length)qrSelection.innerHTML='<option value="">No valid tickets or approved passes</option>';
+ qrBox.style.display="none";
+}
+function generateMyQR(){
+ if(!requireUser())return;
+ let id=qrSelection.value;
+ let item=tickets.find(t=>t.id===id)||passes.find(p=>p.id===id&&p.status==="Approved");
+ if(!item)return notify("No valid ticket or approved pass available.");
+ if(typeof QRCode==="undefined")return notify("QR library unavailable. Check your internet connection.");
+ qrCode.innerHTML="";
+ new QRCode(qrCode,{text:item.id,width:180,height:180});
+ qrDescription.textContent="QR ID: "+item.id+" | Keep this ready for toll verification.";
+ qrBox.style.display="inline-block";notify("QR code generated.");
+}
+function renderHistory(){
+ let u=me();
+ historyContent.innerHTML=u?`<div class="card"><h3>Wallet Balance: ₹${u.balance.toFixed(2)}</h3></div>`+
+ transactions.filter(t=>t.userId===u.id).map(t=>
+ `<div class="card"><p>${esc(t.type)}</p><p>Amount: ₹${t.amount}</p><p>${esc(t.date)}</p><p>ID: ${esc(t.id)}</p></div>`
+ ).join("")||"No transactions yet.":"Please log in to view transaction history.";
+}
+function adminLogin(e){
+ e.preventDefault();
+ if(adminEmail.value==="admin@easytoll.com"&&adminPassword.value==="admin123"){
+ role="admin";adminPanel.style.display="block";renderAdmin();notify("Admin login successful.");
+ }else notify("Invalid administrator credentials.");
+}
+function renderAdmin(){
+ if(role!=="admin")return;
+ adminPanel.style.display="block";
+ adminUsers.innerHTML="<table><tr><th>Name</th><th>Email</th><th>Vehicle</th><th>Action</th></tr>"+
+ users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.vehicle)}</td><td><button class="danger" onclick="deleteUser(${u.id})">Delete</button></td></tr>`).join("")+"</table>";
+ adminPasses.innerHTML="<table><tr><th>Pass ID</th><th>Vehicle</th><th>Type</th><th>Status</th><th>Action</th></tr>"+
+ passes.map(p=>`<tr><td>${esc(p.id)}</td><td>${esc(p.vehicle)}</td><td>${esc(p.type)}</td><td>${esc(p.status)}</td><td>
+ <button onclick="approvePass('${p.id}')">Approve</button><button class="danger" onclick="rejectPass('${p.id}')">Reject</button></td></tr>`).join("")+"</table>";
+ gateList.innerHTML=gates.map(g=>`<p>${esc(g)}</p>`).join("");
+ adminTickets.innerHTML="<table><tr><th>Ticket ID</th><th>Vehicle</th><th>Route</th><th>Amount</th><th>Status</th></tr>"+
+ tickets.map(t=>`<tr><td>${esc(t.id)}</td><td>${esc(t.vehicle)}</td><td>${esc(t.from)} → ${esc(t.to)}</td><td>₹${t.amount}</td><td>${esc(t.status)}</td></tr>`).join("")+"</table>";
+}
+function deleteUser(id){
+ if(role!=="admin"||!confirm("Delete this user?"))return;
+ users=users.filter(u=>u.id!==id);persist();renderAdmin();notify("User deleted.");
+}
+function approvePass(id){
+ if(role!=="admin")return;
+ let p=passes.find(x=>x.id===id);if(!p)return;
+ p.status="Approved";persist();renderAdmin();notify("Pass approved. User can generate QR code.");
+}
+function rejectPass(id){
+ if(role!=="admin")return;
+ let p=passes.find(x=>x.id===id);if(!p)return;
+ p.status="Rejected";persist();renderAdmin();notify("Pass rejected. Refund handling is not implemented in this demo.");
+}
+function addGate(e){
+ e.preventDefault();if(role!=="admin")return;
+ let g=newGate.value.trim();
+ if(gates.some(x=>x.toLowerCase()===g.toLowerCase()))return notify("Toll gate already exists.");
+ gates.push(g);persist();e.target.reset();renderAdmin();fillTicketGates();fillPassGates();notify("Toll gate added.");
+}
+function gateLogin(e){
+ e.preventDefault();
+ if(gateEmail.value==="gate@easytoll.com"&&gatePassword.value==="gate123"){
+ role="gate";gatePanel.style.display="block";notify("Toll gate login successful.");
+ }else notify("Invalid toll gate login.");
+}
+function verifyToll(){
+ if(role!=="gate")return notify("Please log in as toll gate operator.");
+ let raw=verifyId.value.trim();
+ // Accept a QR containing just the ID, or an ID typed manually.
+ let id=raw;
+ let t=tickets.find(x=>x.id===id);
+ let p=passes.find(x=>x.id===id);
+ let result="";
+ if(t){
+ let valid=t.status==="Valid"&&!t.used&&t.date>=new Date().toLocaleDateString("en-CA");
+ result=`<div class="card"><h3>Ticket ${esc(t.id)}</h3><p>Vehicle: ${esc(t.vehicle)}</p>
+ <p>Route: ${esc(t.from)} → ${esc(t.to)}</p><p>Travel date: ${esc(t.date)}</p>
+ <p>Status: <b>${valid?"VALID":"INVALID / USED / EXPIRED"}</b></p>
+ ${valid?`<button onclick="markUsed('${t.id}')">Confirm Toll Entry</button>`:""}</div>`;
+ }else if(p){
+ let valid=p.status==="Approved"&&!p.used;
+ result=`<div class="card"><h3>Pass ${esc(p.id)}</h3><p>Vehicle: ${esc(p.vehicle)}</p>
+ <p>Pass type: ${esc(p.type)}</p><p>Location: ${esc(p.location)}</p>
+ <p>Status: <b>${valid?"APPROVED":"NOT VALID"}</b></p>
+ ${valid?`<button onclick="markPassUsed('${p.id}')">Confirm Toll Entry</button>`:""}</div>`;
+ }else result="<p>Ticket or pass not found.</p>";
+ verifyResult.innerHTML=result;
+}
+function markUsed(id){
+ if(role!=="gate")return;
+ let t=tickets.find(x=>x.id===id);if(!t||t.used)return notify("Ticket already used or invalid.");
+ t.used=true;t.status="Used";t.location=newLocation.value;persist();verifyToll();notify("Ticket verified. Toll entry recorded.");
+}
+function markPassUsed(id){
+ if(role!=="gate")return;
+ let p=passes.find(x=>x.id===id);if(!p||p.used)return notify("Pass already used or invalid.");
+ p.used=true;p.location=newLocation.value;persist();verifyToll();notify("Pass verified. Toll entry recorded.");
+}
+function updateLocation(e){
+ e.preventDefault();if(role!=="gate")return notify("Toll gate login required.");
+ let id=locationId.value.trim(),loc=newLocation.value;
+ let t=tickets.find(x=>x.id===id),p=passes.find(x=>x.id===id);
+ if(!t&&!p)return notify("Ticket or pass ID not found.");
+ if(t)t.location=loc;
+ if(p)p.location=loc;
+ persist();notify("Toll location updated to "+loc);
+}
+</script>
+</body>
+</html>

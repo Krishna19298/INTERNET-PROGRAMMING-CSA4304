@@ -1,0 +1,364 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InsureEasy</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:#f1f5fb;color:#24344b}
+header{background:#123b67;color:white;padding:20px;text-align:center}
+nav{background:#205887;padding:12px;text-align:center}
+nav a{color:white;margin:10px;text-decoration:none}
+main{max-width:1000px;margin:auto;padding:20px}
+section{background:white;padding:20px;margin:15px 0;border-radius:10px;
+box-shadow:0 2px 8px #0001}
+input,select,textarea,button{padding:10px;margin:5px 2px;
+border:1px solid #ccd5df;border-radius:5px;max-width:100%}
+button{background:#1769aa;color:white;border:0;cursor:pointer}
+button:hover{background:#104b7a}
+.hidden{display:none}
+.card{padding:12px;border:1px solid #dce4ef;border-radius:8px;margin:8px 0}
+.msg{color:#16834a;font-weight:bold}
+h2{color:#173f69}
+footer{text-align:center;background:#123b67;color:white;padding:15px}
+</style>
+</head>
+<body>
+
+<header>
+<h1>InsureEasy</h1>
+<p>Insurance Management System</p>
+</header>
+
+<nav>
+<a href="#login">Login</a>
+<a href="#admin">Admin</a>
+<a href="#agent">Agent</a>
+<a href="#user">User</a>
+</nav>
+
+<main>
+<section id="login">
+<h2>Login</h2>
+<select id="role">
+<option value="admin">Admin</option>
+<option value="agent">Agent</option>
+<option value="user">User</option>
+</select><br>
+<input id="username" placeholder="Username">
+<input id="password" type="password" placeholder="Password"><br>
+<button onclick="login()">Login</button>
+<button onclick="registerAgent()">Register as Agent</button>
+<button onclick="logout()">Logout</button>
+<p id="loginMessage"></p>
+<p><small>Demo admin login: admin / admin123</small></p>
+</section>
+
+<section id="admin" class="hidden">
+<h2>Admin Dashboard</h2>
+<h3>Agent Details and Approval</h3>
+<div id="agents"></div>
+</section>
+
+<section id="agent" class="hidden">
+<h2>Agent Dashboard</h2>
+
+<h3>Create Customer</h3>
+<input id="customerUsername" placeholder="Customer username">
+<input id="customerPassword" type="password" placeholder="Temporary password">
+<input id="customerName" placeholder="Customer name">
+<input id="customerPhone" placeholder="Customer phone">
+<button onclick="createCustomer()">Create Customer</button>
+
+<h3>Manage Customer Details</h3>
+<div id="customers"></div>
+
+<h3>Manage Policies</h3>
+<input id="policyCustomer" placeholder="Customer username">
+<input id="policyName" placeholder="Policy name">
+<select id="policyType">
+<option>Health</option>
+<option>Auto</option>
+<option>Home</option>
+<option>Life</option>
+</select>
+<input id="premium" type="number" placeholder="Premium amount">
+<input id="dueDate" type="date">
+<button onclick="createPolicy()">Add Policy</button>
+<div id="agentPolicies"></div>
+
+<h3>Send SMS Alert</h3>
+<input id="alertCustomer" placeholder="Customer username">
+<textarea id="alertMessage" placeholder="Enter reminder message"></textarea><br>
+<button onclick="sendAlert()">Send Alert</button>
+<p id="alertStatus"></p>
+</section>
+
+<section id="user" class="hidden">
+<h2>User Dashboard</h2>
+<h3>Manage My Policies</h3>
+<div id="userPolicies"></div>
+
+<h3>SMS Alerts Received</h3>
+<div id="userAlerts"></div>
+</section>
+</main>
+
+<footer>InsureEasy © 2026</footer>
+
+<script>
+const get=(key,def=[])=>{
+ try{return JSON.parse(localStorage.getItem(key))??def}
+ catch{return def}
+};
+const put=(key,val)=>localStorage.setItem(key,JSON.stringify(val));
+
+if(!localStorage.getItem("ieUsers")){
+ put("ieUsers",{
+  admin:{password:"admin123",role:"admin",name:"Administrator"}
+ });
+}
+if(!localStorage.getItem("ieAgents"))put("ieAgents",[]);
+if(!localStorage.getItem("ieCustomers"))put("ieCustomers",[]);
+if(!localStorage.getItem("iePolicies"))put("iePolicies",[]);
+if(!localStorage.getItem("ieAlerts"))put("ieAlerts",[]);
+
+let current=null;
+
+function safe(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ })[c]);
+}
+
+function registerAgent(){
+ const u=document.getElementById("username").value.trim();
+ const p=document.getElementById("password").value;
+ const users=get("ieUsers",{});
+ if(!u||!p)return alert("Enter username and password.");
+ if(users[u])return alert("Username already exists.");
+
+ users[u]={password:p,role:"agent",approved:false,name:u};
+ put("ieUsers",users);
+ const a=get("ieAgents");
+ a.push({username:u,approved:false});
+ put("ieAgents",a);
+ document.getElementById("loginMessage").textContent=
+  "Agent registered. Wait for admin approval.";
+}
+
+function login(){
+ const u=document.getElementById("username").value.trim();
+ const p=document.getElementById("password").value;
+ const r=document.getElementById("role").value;
+ const users=get("ieUsers",{});
+ const account=users[u];
+
+ if(!account||account.password!==p||account.role!==r||
+    (r==="agent"&&!account.approved)){
+  document.getElementById("loginMessage").textContent=
+   "Invalid login or agent approval pending.";
+  return;
+ }
+
+ current={username:u,role:r};
+ document.getElementById("loginMessage").textContent="Login successful.";
+ showDashboard();
+}
+
+function logout(){
+ current=null;
+ ["admin","agent","user"].forEach(id=>
+  document.getElementById(id).classList.add("hidden"));
+ document.getElementById("loginMessage").textContent="Logged out.";
+}
+
+function showDashboard(){
+ ["admin","agent","user"].forEach(id=>
+  document.getElementById(id).classList.add("hidden"));
+ document.getElementById(current.role).classList.remove("hidden");
+
+ if(current.role==="admin")showAgents();
+ if(current.role==="agent"){
+  showCustomers();
+  showAgentPolicies();
+ }
+ if(current.role==="user"){
+  showUserPolicies();
+  showUserAlerts();
+ }
+}
+
+function showAgents(){
+ const a=get("ieAgents");
+ document.getElementById("agents").innerHTML=a.map(x=>
+  `<div class="card"><b>${safe(x.username)}</b> -
+  ${x.approved?"Approved":"Pending"}
+  ${x.approved?"":`<button onclick="approveAgent('${safe(x.username)}')">Approve Agent</button>`}
+  </div>`
+ ).join("")||"No agents registered.";
+}
+
+function approveAgent(u){
+ if(!current||current.role!=="admin")return;
+ const users=get("ieUsers",{});
+ if(!users[u])return;
+ users[u].approved=true;
+ put("ieUsers",users);
+ put("ieAgents",get("ieAgents").map(a=>
+  a.username===u?{...a,approved:true}:a));
+ showAgents();
+}
+
+function createCustomer(){
+ if(!current||current.role!=="agent")return;
+ const u=document.getElementById("customerUsername").value.trim();
+ const p=document.getElementById("customerPassword").value;
+ const name=document.getElementById("customerName").value.trim();
+ const phone=document.getElementById("customerPhone").value.trim();
+ const users=get("ieUsers",{});
+
+ if(!u||!p||!name||!phone)return alert("Complete all fields.");
+ if(users[u])return alert("Username already exists.");
+
+ users[u]={password:p,role:"user",name};
+ put("ieUsers",users);
+
+ const customers=get("ieCustomers");
+ customers.push({username:u,name,phone,agent:current.username});
+ put("ieCustomers",customers);
+ showCustomers();
+ alert("Customer created successfully.");
+}
+
+function showCustomers(){
+ const a=get("ieCustomers").filter(c=>c.agent===current.username);
+ document.getElementById("customers").innerHTML=a.map(c=>
+  `<div class="card"><b>${safe(c.name)}</b> (${safe(c.username)})
+  <p>Phone: ${safe(c.phone)}</p>
+  <input id="phone_${safe(c.username)}" value="${safe(c.phone)}">
+  <button onclick="updateCustomer('${safe(c.username)}')">Update Phone</button>
+  </div>`
+ ).join("")||"No customers available.";
+}
+
+function updateCustomer(u){
+ if(!current||current.role!=="agent")return;
+ const customers=get("ieCustomers");
+ const c=customers.find(x=>x.username===u&&x.agent===current.username);
+ if(!c)return;
+ c.phone=document.getElementById("phone_"+u).value.trim();
+ put("ieCustomers",customers);
+ showCustomers();
+}
+
+function createPolicy(){
+ if(!current||current.role!=="agent")return;
+ const u=document.getElementById("policyCustomer").value.trim();
+ const name=document.getElementById("policyName").value.trim();
+ const type=document.getElementById("policyType").value;
+ const premium=Number(document.getElementById("premium").value);
+ const due=document.getElementById("dueDate").value;
+
+ const customer=get("ieCustomers").find(c=>
+  c.username===u&&c.agent===current.username);
+ if(!customer||!name||premium<=0||!due)
+  return alert("Enter valid details for your customer.");
+
+ const policies=get("iePolicies");
+ policies.push({
+  id:Date.now(),customer:u,agent:current.username,
+  name,type,premium,due
+ });
+ put("iePolicies",policies);
+ showAgentPolicies();
+ alert("Policy added successfully.");
+}
+
+function showAgentPolicies(){
+ const policies=get("iePolicies").filter(p=>p.agent===current.username);
+ document.getElementById("agentPolicies").innerHTML=policies.map(p=>
+  `<div class="card"><b>${safe(p.name)}</b> — ${safe(p.type)}
+  <p>Customer: ${safe(p.customer)}</p>
+  <p>Premium: ₹${p.premium} | Due: ${safe(p.due)}</p>
+  <button onclick="updatePolicy(${p.id})">Update Policy</button>
+  <button onclick="deletePolicy(${p.id})">Delete Policy</button>
+  </div>`
+ ).join("")||"No policies added.";
+}
+
+function updatePolicy(id){
+ if(!current||current.role!=="agent")return;
+ const p=get("iePolicies").find(x=>x.id===id&&x.agent===current.username);
+ if(!p)return;
+ const name=prompt("Enter policy name:",p.name);
+ if(name===null||!name.trim())return;
+ const premium=Number(prompt("Enter premium amount:",p.premium));
+ if(!Number.isFinite(premium)||premium<=0)return alert("Invalid premium.");
+ p.name=name.trim();p.premium=premium;
+ put("iePolicies",get("iePolicies").map(x=>x.id===id?p:x));
+ showAgentPolicies();
+}
+
+function deletePolicy(id){
+ if(!current||current.role!=="agent")return;
+ if(!confirm("Delete this policy?"))return;
+ put("iePolicies",get("iePolicies").filter(p=>
+  !(p.id===id&&p.agent===current.username)));
+ showAgentPolicies();
+}
+
+function sendAlert(){
+ if(!current||current.role!=="agent")return;
+ const u=document.getElementById("alertCustomer").value.trim();
+ const message=document.getElementById("alertMessage").value.trim();
+ const customer=get("ieCustomers").find(c=>
+  c.username===u&&c.agent===current.username);
+ if(!customer||!message)return alert("Enter a valid customer and message.");
+
+ const alerts=get("ieAlerts");
+ alerts.push({customer:u,message,date:new Date().toLocaleString(),
+  agent:current.username});
+ put("ieAlerts",alerts);
+ document.getElementById("alertStatus").textContent=
+  "Alert saved for "+customer.name+". SMS delivery is simulated.";
+}
+
+function showUserPolicies(){
+ const policies=get("iePolicies").filter(p=>p.customer===current.username);
+ document.getElementById("userPolicies").innerHTML=policies.map(p=>
+  `<div class="card"><b>${safe(p.name)}</b> — ${safe(p.type)}
+  <p>Premium: ₹${p.premium}</p><p>Due date: ${safe(p.due)}</p>
+  <button onclick="editUserPolicy(${p.id})">Request Policy Update</button>
+  </div>`
+ ).join("")||"No policies assigned to your account.";
+}
+
+function editUserPolicy(id){
+ if(!current||current.role!=="user")return;
+ const p=get("iePolicies").find(x=>x.id===id&&x.customer===current.username);
+ if(!p)return;
+ const message=prompt("Enter your policy update request:");
+ if(!message||!message.trim())return;
+ const alerts=get("ieAlerts");
+ alerts.push({customer:current.username,
+  message:"Policy update request: "+message,
+  date:new Date().toLocaleString(),agent:p.agent});
+ put("ieAlerts",alerts);
+ alert("Your policy update request has been saved.");
+ showUserAlerts();
+}
+
+function showUserAlerts(){
+ const alerts=get("ieAlerts").filter(a=>a.customer===current.username);
+ document.getElementById("userAlerts").innerHTML=alerts.map(a=>
+  `<div class="card"><p>${safe(a.message)}</p>
+  <small>${safe(a.date)}</small></div>`
+ ).join("")||"No SMS alerts received.";
+}
+</script>
+</body>
+</html>
+```
